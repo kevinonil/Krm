@@ -7,6 +7,7 @@ from quantum_chronology import classical_threshold, quantum_audit
 from wormhole_sim import embedding, integrate_photon, validate
 from energy_conditions import stress_energy, validate as validate_energy
 from photon_bundle import run_bundle
+from redshifted_wormhole import stress_energy as redshifted_stress_energy, validate as validate_redshifted
 
 
 class ChronologyTests(unittest.TestCase):
@@ -76,6 +77,32 @@ class ResearchV2Tests(unittest.TestCase):
         self.assertEqual(len(paths), 3)
         self.assertTrue(all(path["l"][0] < 0 < path["l"][-1] for path in paths))
         self.assertLess(max(path["max_null_residual"] for path in paths), 2e-6)
+
+
+class ResearchV3Tests(unittest.TestCase):
+    def test_throat_radial_nec_is_independent_of_redshift_amplitude(self):
+        r0, q = 2.0, 1.0
+        expected = -(q + 1.0) / (8.0 * math.pi * r0**2)
+        for alpha in (-2.0, 0.0, 0.5, 2.0):
+            data = redshifted_stress_energy(r0, r0, q, alpha)
+            self.assertAlmostEqual(float(data["rho_plus_p_r"]), expected, places=12)
+
+    def test_zero_redshift_matches_ultrastatic_model(self):
+        r = 3.0
+        old = stress_energy(r, throat_radius=2.0, exponent=1.0)
+        new = redshifted_stress_energy(r, 2.0, 1.0, 0.0)
+        for key in ("rho", "p_r", "p_t", "rho_plus_p_r", "rho_plus_p_t"):
+            self.assertAlmostEqual(float(old[key]), float(new[key]), places=12)
+
+    def test_redshift_lapse_is_positive_and_profiles_finite(self):
+        radii = [2.0, 3.0, 10.0]
+        data = redshifted_stress_energy(radii, 2.0, 1.0, 2.0)
+        self.assertTrue(all(float(x) > 0 for x in data["lapse"]))
+        self.assertTrue(all(math.isfinite(float(x)) for values in data.values() for x in values))
+
+    def test_redshift_parameters_are_bounded(self):
+        with self.assertRaises(ValueError):
+            validate_redshifted(2.0, 1.0, 6.0, 10.0, 100)
 
 
 if __name__ == "__main__":
