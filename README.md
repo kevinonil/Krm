@@ -12,6 +12,7 @@ python chronology_model.py --beta 0.8 --duration-years 10 --separation-ly 1
 python quantum_chronology.py --clock-offset-years 4 --separation-ly 1
 python energy_conditions.py --throat-radius 2 --shape-exponent 1 --r-max 10
 python photon_bundle.py --impacts 0,0.5,1,1.5
+python redshifted_wormhole.py --alpha 0.5 --scan=-2,-1,0,0.5,1,2
 ```
 
 All generated files are written to `output/`. Open `output/wormhole_3d.html` in a browser; Plotly JavaScript is embedded, so the visualization works offline after generation.
@@ -99,9 +100,33 @@ checks throat crossing plus the null constraint for each path.
 Outputs: `photon_bundle_3d.html`, `photon_bundle.csv`,
 `photon_bundle.png`, `photon_bundle_report.txt`.
 
+## 6. Non-ultrastatic redshift profiles
+
+```bash
+python redshifted_wormhole.py --throat-radius 2 --shape-exponent 1 --alpha 0.5 --scan=-2,-1,0,0.5,1,2
+```
+
+This extends the static Morris-Thorne metric to
+`ds^2=-exp(2 Phi(r))dt^2 + dr^2/(1-b(r)/r)+r^2 dOmega^2`, using
+`b(r)=r0*(r0/r)^q` and the finite, asymptotically vanishing redshift profile
+`Phi(r)=-alpha*r0/r`. The module computes the Einstein-equation-implied
+orthonormal stress components and scans radial NEC profiles over alpha.
+
+A key geometric result is checked in code: at the throat,
+`rho+p_r=(b'(r0)-1)/(8*pi*r0^2)`. For a flaring-out throat,
+`b'(r0)<1`, so the radial NEC is violated there regardless of any finite
+redshift derivative in this classical, static, traversable Morris-Thorne
+setup. Changing Phi can change the stress profile away from the throat, but
+cannot remove this throat result under these assumptions. This is not a
+general statement about modified gravity, non-static geometries, or all
+possible spacetime theories.
+
+Outputs: `redshifted_energy_conditions.csv`, `redshift_nec_scan.png`,
+`redshifted_energy_report.txt`.
+
 ## Tests and continuous integration
 
-`tests/test_simulation.py` checks clock-offset limits, the threshold classification, the explicit non-computation status of the quantum audit, throat geometry, photon throat crossing, null constraints, stress-energy identities, and the ray bundle. GitHub Actions runs the tests and all experiments, then uploads the generated `wormhole-results` artifact.
+`tests/test_simulation.py` checks clock-offset limits, the threshold classification, the explicit non-computation status of the quantum audit, throat geometry, photon throat crossing, null constraints, stress-energy identities, the ray bundle, redshifted profiles, and the throat NEC identity. GitHub Actions runs the tests and all experiments, then uploads the generated `wormhole-results` artifact.
 
 ## Scientific scope and references
 
