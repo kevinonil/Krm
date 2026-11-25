@@ -40,3 +40,21 @@ This integrates a test photon on a prescribed metric. It does not solve the
 Einstein field equations, establish that the required matter distribution
 exists, or demonstrate a physical wormhole, time travel, or closed timelike
 curves. Passing tests confirms numerical execution and internal consistency only.
+
+
+## Chronology threshold experiment
+
+Run the idealized clock-offset threshold calculator:
+
+```bash
+python chronology_model.py --beta 0.8 --duration-years 10 --separation-ly 1
+```
+
+It estimates the moving clock's special-relativistic time lag
+`Delta t = T(1 - sqrt(1-beta^2))` and compares it with the external
+light-travel time `D/c` (using years and light-years, so c=1).
+This is a conditional, simplified chronology criterion, not a full
+spacetime construction or a prediction that a physical time machine exists.
+
+Additional outputs: `chronology_report.txt`, `chronology_sweep.csv`,
+and `chronology_threshold.png`.
