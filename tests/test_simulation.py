@@ -107,3 +107,37 @@ class ResearchV3Tests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+from research_frontier import build_audit, fr_effective_null, scalar_null_contraction
+
+
+class ResearchV4Tests(unittest.TestCase):
+    def test_canonical_scalar_satisfies_null_energy_condition(self):
+        self.assertAlmostEqual(scalar_null_contraction(0.25, "canonical"), 0.0625)
+        self.assertGreaterEqual(scalar_null_contraction(-2.0, "canonical"), 0.0)
+
+    def test_phantom_scalar_has_negative_null_contraction(self):
+        self.assertAlmostEqual(scalar_null_contraction(0.25, "phantom"), -0.0625)
+
+    def test_scalar_input_validation(self):
+        with self.assertRaises(ValueError):
+            scalar_null_contraction(float("nan"))
+        with self.assertRaises(ValueError):
+            scalar_null_contraction(1.0, "unknown")
+
+    def test_fr_projection_and_positive_F_requirement(self):
+        self.assertAlmostEqual(fr_effective_null(1.0, 0.01, 0.0), 0.01)
+        with self.assertRaises(ValueError):
+            fr_effective_null(0.0, 0.01, 0.0)
+
+    def test_v4_never_claims_stability_was_computed(self):
+        audit = build_audit()
+        self.assertFalse(audit["dynamical_stability"]["computed"])
+        self.assertEqual(audit["dynamical_stability"]["status"], "NOT COMPUTED")
+        self.assertEqual(len(audit["dynamical_stability"]["required_inputs"]), 5)
+
+    def test_fr_illustrative_cases_are_finite(self):
+        cases = build_audit()["modified_gravity_f_R"]["cases"]
+        self.assertEqual(len(cases), 3)
+        self.assertTrue(all(math.isfinite(c["effective_Rkk_over_8pi"]) for c in cases))
