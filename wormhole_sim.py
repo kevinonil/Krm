@@ -1,164 +1,92 @@
-"""Interactive 3D visualization of a simple Morris-Thorne wormhole.
-
-This visualizes an assumed spatial geometry. It is not a physical wormhole
-solver and does not demonstrate that time travel is possible.
-"""
+"""Numerical null-geodesic demo for an idealized Morris-Thorne wormhole."""
 from __future__ import annotations
-
 import argparse
 from pathlib import Path
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
+from scipy.integrate import solve_ivp
 
+def validate(r0, rmax, samples, impact):
+    if not np.isfinite(r0) or r0 <= 0: raise ValueError("throat radius must be finite and positive")
+    if not np.isfinite(rmax) or rmax <= r0: raise ValueError("r-max must exceed throat radius")
+    if not 30 <= samples <= 1200: raise ValueError("samples must be between 30 and 1200")
+    if not np.isfinite(impact) or not 0 <= impact < r0: raise ValueError("impact parameter must satisfy 0 <= impact < throat radius")
 
-def validate_parameters(r0: float, r_max: float, samples: int) -> None:
-    if not np.isfinite(r0) or r0 <= 0:
-        raise ValueError("throat radius must be a finite positive number")
-    if not np.isfinite(r_max) or r_max <= r0:
-        raise ValueError("r_max must be finite and greater than throat radius")
-    if samples < 20 or samples > 1200:
-        raise ValueError("samples must be between 20 and 1200")
-
-
-def build_embedding(r0: float = 2.0, r_max: float = 10.0, samples: int = 180):
-    """Return r and z for z(r)=+/-r0*arcosh(r/r0)."""
-    validate_parameters(r0, r_max, samples)
-    r = np.linspace(r0, r_max, samples)
-    z = r0 * np.arccosh(r / r0)
+def embedding(l, r0):
+    r = np.sqrt(l*l + r0*r0)
+    z = np.sign(l) * r0 * np.arccosh(r/r0)
     return r, z
 
+def integrate_photon(r0, rmax, impact, samples):
+    # Equatorial null geodesic; E=c=1, L=impact, affine parameter lambda.
+    def rhs(_lam, y):
+        l, v, phi = y
+        d = l*l + r0*r0
+        return [v, l*impact**2/d**2, impact/d]
+    l0 = -rmax
+    v0 = np.sqrt(1.0 - impact**2/(l0*l0+r0*r0))
+    def finish(_lam, y): return y[0]-rmax
+    finish.terminal, finish.direction = True, 1
+    sol = solve_ivp(rhs, (0, 5*rmax), [l0, v0, 0.0],
+                    t_eval=np.linspace(0, 5*rmax, samples*3),
+                    events=finish, rtol=1e-9, atol=1e-11, max_step=0.04)
+    if not sol.success or len(sol.t) < 10: raise RuntimeError(sol.message)
+    l, v, phi = sol.y
+    r, z = embedding(l, r0)
+    return sol.t, l, v, phi, r*np.cos(phi), r*np.sin(phi), z
 
-def save_static_outputs(output_dir: Path, r0: float, r_max: float, samples: int) -> None:
-    r, z = build_embedding(r0, r_max, samples)
-    fig, ax = plt.subplots(figsize=(9, 6))
-    ax.plot(r, z, label="Upper embedding branch")
-    ax.plot(r, -z, label="Lower embedding branch")
-    ax.scatter([r0], [0], color="black", zorder=5, label="Throat")
-    ax.set(title="Morris–Thorne Wormhole: Spatial Embedding",
-           xlabel="Radial coordinate r", ylabel="Embedding coordinate z")
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(output_dir / "wormhole_embedding.png", dpi=160)
-    plt.close(fig)
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--output-dir",default="output")
+    p.add_argument("--throat-radius",type=float,default=2.0)
+    p.add_argument("--r-max",type=float,default=10.0)
+    p.add_argument("--samples",type=int,default=180)
+    p.add_argument("--impact-parameter",type=float,default=1.0)
+    a=p.parse_args()
+    validate(a.throat_radius,a.r_max,a.samples,a.impact_parameter)
+    out=Path(a.output_dir); out.mkdir(parents=True,exist_ok=True)
+    tau,l,v,phi,x,y,z=integrate_photon(a.throat_radius,a.r_max,a.impact_parameter,a.samples)
+    r,_=embedding(l,a.throat_radius)
+    axis=np.linspace(-a.r_max,a.r_max,a.samples)
+    theta=np.linspace(0,2*np.pi,100)
+    ll,tt=np.meshgrid(axis,theta)
+    rr,zz=embedding(ll,a.throat_radius)
+    xx,yy=rr*np.cos(tt),rr*np.sin(tt)
+    fig=go.Figure()
+    fig.add_trace(go.Surface(x=xx,y=yy,z=zz,surfacecolor=ll,colorscale="Viridis",
+                             opacity=.78,showscale=False,name="Wormhole spatial slice"))
+    fig.add_trace(go.Scatter3d(x=x,y=y,z=z,mode="lines",
+                               line=dict(color="#ffcc33",width=7),
+                               name="Numerically integrated null geodesic"))
+    fig.add_trace(go.Scatter3d(x=[x[0]],y=[y[0]],z=[z[0]],mode="markers",
+                               marker=dict(size=5,color="#ff5533"),name="Photon start"))
+    fig.update_layout(title=f"Photon null geodesic | throat r0={a.throat_radius:g}",
+                      scene=dict(xaxis_title="x",yaxis_title="y",zaxis_title="z",aspectmode="data"),
+                      margin=dict(l=0,r=0,b=0,t=55))
+    html=out/"wormhole_3d.html"
+    fig.write_html(html,include_plotlyjs=True,full_html=True)
+    f,ax=plt.subplots(figsize=(9,6))
+    ax.plot(x,z,label="Integrated photon path (x-z projection)")
+    ax.scatter([0],[0],label="Throat",zorder=4)
+    ax.set(title="Photon null geodesic through idealized wormhole",xlabel="x",ylabel="Embedding z")
+    ax.grid(True,alpha=.3); ax.legend(); f.tight_layout()
+    f.savefig(out/"photon_geodesic.png",dpi=160); plt.close(f)
+    np.savetxt(out/"photon_geodesic.csv",np.column_stack((tau,l,r,phi,x,y,z,v)),
+               delimiter=",",header="affine_parameter,l,r,phi,x,y,z,dl_dlambda",comments="")
+    residual=v*v+a.impact_parameter**2/r**2-1
+    err=float(np.max(np.abs(residual)))
+    assert l[0]<0<l[-1] and np.all(np.isfinite(np.column_stack((tau,l,phi,x,y,z))))
+    assert err<2e-6, f"Null constraint residual too large: {err}"
+    (out/"simulation_report.txt").write_text(
+        "Morris-Thorne ultrastatic wormhole: numerical null geodesic\n"
+        f"throat_radius={a.throat_radius}\nr_max={a.r_max}\nimpact_parameter={a.impact_parameter}\n"
+        f"trajectory_points={len(tau)}\nmax_null_constraint_residual={err:.3e}\n"
+        "units: geometrized (c=1); idealized metric, not an observed object\n",encoding="utf-8")
+    print("PASS: photon crossed the throat")
+    print(f"PASS: null-constraint max residual = {err:.3e}")
+    print("Generated:",html,"photon_geodesic.csv photon_geodesic.png simulation_report.txt")
 
-    np.savetxt(
-        output_dir / "embedding_profile.csv",
-        np.column_stack((r, z, -z)),
-        delimiter=",",
-        header="r,z_upper,z_lower",
-        comments="",
-    )
-
-
-def build_3d_figure(r0: float, r_max: float, samples: int) -> go.Figure:
-    r, z = build_embedding(r0, r_max, samples)
-    theta = np.linspace(0, 2 * np.pi, 100)
-    rr, tt = np.meshgrid(r, theta)
-    zz = r0 * np.arccosh(rr / r0)
-    xx = rr * np.cos(tt)
-    yy = rr * np.sin(tt)
-
-    fig = go.Figure()
-    fig.add_trace(go.Surface(
-        x=xx, y=yy, z=zz, name="Upper universe",
-        colorscale="Viridis", opacity=0.88, showscale=False,
-        hovertemplate="r=%{x:.2f}, z=%{z:.2f}<extra>Upper sheet</extra>",
-    ))
-    fig.add_trace(go.Surface(
-        x=xx, y=yy, z=-zz, name="Lower universe",
-        colorscale="Plasma", opacity=0.88, showscale=False,
-        hovertemplate="r=%{x:.2f}, z=%{z:.2f}<extra>Lower sheet</extra>",
-    ))
-
-    # Illustrative radial light path: approach the throat on one sheet,
-    # pass through the throat, and move outward on the other sheet.
-    path_x = np.concatenate((r[::-1], r[1:]))
-    path_y = np.zeros_like(path_x)
-    path_z = np.concatenate((z[::-1], -z[1:]))
-    fig.add_trace(go.Scatter3d(
-        x=path_x, y=path_y, z=path_z, mode="lines",
-        line=dict(color="#ffcc33", width=7), name="Illustrative light path",
-    ))
-    fig.add_trace(go.Scatter3d(
-        x=[path_x[0]], y=[0], z=[path_z[0]], mode="markers",
-        marker=dict(size=7, color="#ff5533"),
-        name="Light marker",
-    ))
-
-    frames = [
-        go.Frame(
-            name=str(i),
-            data=[go.Scatter3d(
-                x=[path_x[i]], y=[path_y[i]], z=[path_z[i]],
-                mode="markers", marker=dict(size=7, color="#ff5533"),
-            )],
-            traces=[3],
-        )
-        for i in range(len(path_x))
-    ]
-    fig.frames = frames
-    fig.update_layout(
-        title=f"Interactive Morris–Thorne Wormhole (throat radius r₀={r0:g})",
-        scene=dict(
-            xaxis_title="x", yaxis_title="y", zaxis_title="z",
-            aspectmode="data",
-            camera=dict(eye=dict(x=1.7, y=1.7, z=1.15)),
-        ),
-        margin=dict(l=0, r=0, b=0, t=55),
-        legend=dict(orientation="h", yanchor="bottom", y=0.01),
-        updatemenus=[dict(
-            type="buttons", showactive=False, x=0.02, y=0.98,
-            buttons=[
-                dict(label="▶ Play", method="animate",
-                     args=[None, {"frame": {"duration": 25, "redraw": True},
-                                  "fromcurrent": True,
-                                  "transition": {"duration": 0}}]),
-                dict(label="⏸ Pause", method="animate",
-                     args=[[None], {"mode": "immediate",
-                                    "frame": {"duration": 0, "redraw": False},
-                                    "transition": {"duration": 0}}]),
-            ],
-        )],
-    )
-    return fig
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", default="output")
-    parser.add_argument("--throat-radius", type=float, default=2.0)
-    parser.add_argument("--r-max", type=float, default=10.0)
-    parser.add_argument("--samples", type=int, default=180)
-    args = parser.parse_args()
-
-    validate_parameters(args.throat_radius, args.r_max, args.samples)
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    save_static_outputs(output_dir, args.throat_radius, args.r_max, args.samples)
-    figure = build_3d_figure(args.throat_radius, args.r_max, args.samples)
-    html_path = output_dir / "wormhole_3d.html"
-    figure.write_html(html_path, include_plotlyjs=True, full_html=True)
-
-    r, _ = build_embedding(args.throat_radius, args.r_max, args.samples)
-    ratio = args.throat_radius**2 / r**2
-    assert np.isclose(ratio[0], 1.0)
-    assert np.all(ratio <= 1.0 + 1e-12)
-    assert html_path.stat().st_size > 10_000
-
-    print("3D wormhole visualization generated successfully.")
-    print(f"Throat radius: {args.throat_radius:g}")
-    print(f"Radial range: [{r.min():.3f}, {r.max():.3f}]")
-    print("Checked b(r)/r <= 1 on the sampled domain.")
-    print(f"Interactive 3D view: {html_path}")
-    print("Static plot: wormhole_embedding.png")
-    print("Data table: embedding_profile.csv")
-
-
-if __name__ == "__main__":
-    main()
+if __name__=="__main__": main()
