@@ -1,53 +1,42 @@
-# Wormhole Geometry Demo
+# Wormhole numerical simulation
 
-An educational Python visualization of the spatial embedding for a simple
-Morris–Thorne wormhole metric.
+Educational numerical experiment on an idealized ultrastatic Morris-Thorne
+wormhole with Phi(r)=0 and b(r)=r0^2/r.
 
-## Model
+## Features
+- Two-sheet spatial embedding in proper-radial coordinate l, with r(l)=sqrt(l^2+r0^2).
+- Numerical integration of an equatorial photon null geodesic using scipy.solve_ivp.
+- Null-constraint consistency check.
+- Interactive self-contained 3D HTML, trajectory CSV, PNG projection, and text report.
 
-- Redshift function: `Phi(r) = 0`
-- Shape function: `b(r) = r0^2 / r`
-- Default throat radius: `r0 = 2`
-- Embedding profile: `z(r) = +/- r0 * arcosh(r/r0)`, for `r >= r0`
-
-The two embedding sheets are rendered as interactive 3D surfaces. An
-illustrative radial path and a moving marker show a route approaching,
-crossing, and leaving the throat in the diagram.
-
-## Run locally
-
+## Run
 ```bash
 python -m pip install -r requirements.txt
 python wormhole_sim.py
 ```
+Open `output/wormhole_3d.html` in a browser. Plotly JavaScript is embedded,
+so the HTML works offline after generation.
 
-Open `output/wormhole_3d.html` in a modern browser. It is self-contained
-(includes Plotly JavaScript), so the interactive view works offline after
-generation. Drag to rotate, scroll to zoom, and use Play/Pause to animate the
-illustrative marker.
-
-You can change the throat radius and plot range:
-
+Change parameters:
 ```bash
-python wormhole_sim.py --throat-radius 3 --r-max 14 --samples 220
+python wormhole_sim.py --throat-radius 3 --r-max 14 --samples 220 --impact-parameter 1.2
 ```
+The impact parameter must be nonnegative and smaller than the throat radius.
 
-The program also writes:
-- `output/wormhole_embedding.png` — static profile
-- `output/embedding_profile.csv` — numerical profile data
+## Outputs
+- `wormhole_3d.html`: interactive 3D embedding and computed photon path
+- `photon_geodesic.csv`: numerical trajectory samples
+- `photon_geodesic.png`: 2D projection
+- `simulation_report.txt`: parameters and numerical validation
 
-## GitHub Actions
-
-Every push runs the simulation on a GitHub-hosted runner and uploads all
-generated files as the `wormhole-results` artifact. Open the repository's
-**Actions** tab, select the latest run, and download the artifact.
-
-## Scientific scope and limitations
-
-This is a visualization of an assumed spatial geometry, not a solution of
-the full Einstein field equations. The moving marker is an illustrative
-animation, not a numerically integrated photon geodesic. The project does
-not establish that traversable wormholes exist, model the exotic matter or
-energy conditions that might be required to support one, or demonstrate
-time travel or closed timelike curves. A successful workflow only confirms
-that this visualization code runs and produces its files.
+## Equations and scope
+In geometrized units (c=1), E=1, L=impact parameter:
+```
+dl/dlambda = v
+dv/dlambda = l L^2/(l^2+r0^2)^2
+dphi/dlambda = L/(l^2+r0^2)
+```
+This integrates a test photon on a prescribed metric. It does not solve the
+Einstein field equations, establish that the required matter distribution
+exists, or demonstrate a physical wormhole, time travel, or closed timelike
+curves. Passing tests confirms numerical execution and internal consistency only.
