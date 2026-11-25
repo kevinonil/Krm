@@ -32,6 +32,8 @@ jobs:
         run: python photon_bundle.py --output-dir output --throat-radius 2 --r-max 10 --samples 100 --impacts 0,0.5,1,1.5
       - name: Analyze non-ultrastatic redshift profiles
         run: python redshifted_wormhole.py --output-dir output --throat-radius 2 --shape-exponent 1 --alpha 0.5 --scan=-2,-1,0,0.5,1,2 --r-max 10 --samples 240
+      - name: Run version-4 research frontier audit
+        run: python research_frontier.py --output-dir output
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
