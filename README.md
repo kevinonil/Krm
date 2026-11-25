@@ -10,6 +10,8 @@ python -m unittest discover -s tests -v
 python wormhole_sim.py
 python chronology_model.py --beta 0.8 --duration-years 10 --separation-ly 1
 python quantum_chronology.py --clock-offset-years 4 --separation-ly 1
+python energy_conditions.py --throat-radius 2 --shape-exponent 1 --r-max 10
+python photon_bundle.py --impacts 0,0.5,1,1.5
 ```
 
 All generated files are written to `output/`. Open `output/wormhole_3d.html` in a browser; Plotly JavaScript is embedded, so the visualization works offline after generation.
@@ -66,9 +68,40 @@ The audit summarizes the scope of relevant ideas:
 
 Outputs: `quantum_chronology_report.txt` and `quantum_chronology_audit.json`.
 
+## 4. Stress-energy and classical energy conditions
+
+```bash
+python energy_conditions.py --throat-radius 2 --shape-exponent 1 --r-max 10
+```
+
+For the ultrastatic metric
+`ds^2=-dt^2+dr^2/(1-b(r)/r)+r^2 dOmega^2`, the module uses the
+power-law shape function `b(r)=r0*(r0/r)^q`, with `q>-1`. It infers
+orthonormal-frame `rho`, `p_r`, and `p_t` from the Einstein equations in
+`G=c=1` units, then reports the radial and transverse null-energy-condition
+(NEC) combinations. For this family, the radial NEC is violated; this is a
+property of the prescribed classical geometry, not a proposed material recipe.
+The code does not solve for a matter Lagrangian, quantum stress tensor, or
+dynamical stability.
+
+Outputs: `energy_conditions.csv`, `energy_conditions.png`,
+`energy_conditions_report.txt`.
+
+## 5. Photon ray bundle
+
+```bash
+python photon_bundle.py --throat-radius 2 --r-max 10 --impacts 0,0.5,1,1.5
+```
+
+This traces several independent null geodesics on the same fixed metric and
+checks throat crossing plus the null constraint for each path.
+
+Outputs: `photon_bundle_3d.html`, `photon_bundle.csv`,
+`photon_bundle.png`, `photon_bundle_report.txt`.
+
 ## Tests and continuous integration
 
-`tests/test_simulation.py` checks clock-offset limits, the threshold classification, the explicit non-computation status of the quantum audit, throat geometry, photon throat crossing, and the null constraint. GitHub Actions runs the tests and all three experiments, then uploads the generated `wormhole-results` artifact.
+`tests/test_simulation.py` checks clock-offset limits, the threshold classification, the explicit non-computation status of the quantum audit, throat geometry, photon throat crossing, null constraints, stress-energy identities, and the ray bundle. GitHub Actions runs the tests and all experiments, then uploads the generated `wormhole-results` artifact.
 
 ## Scientific scope and references
 
