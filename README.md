@@ -136,3 +136,21 @@ Further reading:
 - Morris, Thorne & Yurtsever (1988), *Wormholes, Time Machines, and the Weak Energy Condition*, Physical Review Letters 61, 1446.
 - Hawking (1992), *Chronology protection conjecture*, Physical Review D 46, 603.
 - Kay, Radzikowski & Wald (1997), *Quantum field theory on spacetimes with a compactly generated Cauchy horizon*, Communications in Mathematical Physics 183, 533.
+
+
+## 7. Version-4 research frontier: scalar matter, modified gravity, and stability
+
+```bash
+python research_frontier.py --output-dir output
+```
+
+This version adds a deliberately bounded research audit rather than pretending to solve a new wormhole theory:
+
+- **Scalar matter:** evaluates the null contraction for minimally coupled canonical and phantom-sign scalar kinetic terms. The canonical result is nonnegative; the phantom sign can make it negative but carries a ghost/negative-kinetic-energy concern. This is not a viable material recipe.
+- **Metric f(R) gravity:** records the null-projected field equation
+  `F R_ab k^a k^b = 8*pi*T_ab k^a k^b + k^a k^b nabla_a nabla_b F`, where `F=df/dR`. Small illustrative local algebra cases show why an effective geometric contribution can differ from the matter NEC. They are not solutions of the coupled field equations and do not establish viability; effective NEC language depends on the chosen frame/decomposition.
+- **Dynamical stability:** explicitly marked **NOT COMPUTED**. A meaningful eigenmode calculation needs a covariant action, matter dynamics, a self-consistent background, boundary conditions, and gauge/constraint treatment. No stability claim is made.
+
+Outputs: `research_frontier_v4.json` and `research_frontier_v4_report.txt`.
+
+The audit is intentionally conservative: it distinguishes an algebraic sign demonstration from a complete, regular, dynamically stable wormhole solution.
