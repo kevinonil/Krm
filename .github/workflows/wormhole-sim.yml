@@ -18,10 +18,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Run numerical simulation
+      - name: Run regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Run numerical wormhole simulation
         run: python wormhole_sim.py --output-dir output --throat-radius 2 --r-max 10 --samples 180 --impact-parameter 1
       - name: Run chronology threshold model
         run: python chronology_model.py --output-dir output --beta 0.8 --duration-years 10 --separation-ly 1
+      - name: Run semiclassical chronology audit
+        run: python quantum_chronology.py --output-dir output --clock-offset-years 4 --separation-ly 1
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
