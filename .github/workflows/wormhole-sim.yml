@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run simulation
-        run: python wormhole_sim.py --output-dir output
+        run: python wormhole_sim.py --output-dir output --throat-radius 2 --r-max 10 --samples 180
 
       - name: Upload generated results
         uses: actions/upload-artifact@v4
