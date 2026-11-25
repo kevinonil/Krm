@@ -77,8 +77,8 @@ def main() -> None:
         writer.writerows(zip(radius, *(data[key] for key in data)))
 
     fig, ax = plt.subplots(figsize=(9, 6))
-    ax.plot(radius, data["rho_plus_p_r"], label=r"$\\rho+p_r$ (radial NEC)")
-    ax.plot(radius, data["rho_plus_p_t"], label=r"$\\rho+p_t$ (transverse NEC)")
+    ax.plot(radius, data["rho_plus_p_r"], label="rho + p_r (radial NEC)")
+    ax.plot(radius, data["rho_plus_p_t"], label="rho + p_t (transverse NEC)")
     ax.axhline(0.0, color="black", linewidth=0.8)
     ax.set(xlabel="Areal radius r", ylabel="Energy-condition combination (geometrized units)",
            title=f"Energy-condition diagnostics (q={args.shape_exponent:g}, r0={args.throat_radius:g})")
