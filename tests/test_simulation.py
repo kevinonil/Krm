@@ -5,6 +5,8 @@ import unittest
 from chronology_model import classify, time_shift
 from quantum_chronology import classical_threshold, quantum_audit
 from wormhole_sim import embedding, integrate_photon, validate
+from energy_conditions import stress_energy, validate as validate_energy
+from photon_bundle import run_bundle
 
 
 class ChronologyTests(unittest.TestCase):
@@ -52,6 +54,28 @@ class GeodesicTests(unittest.TestCase):
         residual = v*v + 1.0**2/r**2 - 1.0
         self.assertLess(float(abs(residual).max()), 2e-6)
         self.assertTrue(all(math.isfinite(float(value)) for value in (tau[-1], phi[-1], x[-1], y[-1], z[-1])))
+
+
+class ResearchV2Tests(unittest.TestCase):
+    def test_morris_thorne_radial_nec_is_violated(self):
+        data = stress_energy(2.0, throat_radius=2.0, exponent=1.0)
+        self.assertAlmostEqual(float(data["rho_plus_p_r"]), -1.0 / (16.0 * math.pi), places=12)
+        self.assertLess(float(data["rho_plus_p_r"]), 0.0)
+
+    def test_transverse_nec_and_sec_identity_at_throat(self):
+        data = stress_energy(2.0, throat_radius=2.0, exponent=1.0)
+        self.assertAlmostEqual(float(data["rho_plus_p_t"]), 0.0, places=12)
+        self.assertAlmostEqual(float(data["rho_plus_p_r_plus_2p_t"]), 0.0, places=12)
+
+    def test_energy_model_rejects_non_asymptotically_flat_exponent(self):
+        with self.assertRaises(ValueError):
+            validate_energy(2.0, -1.0, 10.0, 100)
+
+    def test_photon_bundle_crosses_for_each_impact(self):
+        paths = run_bundle(2.0, 10.0, [0.0, 0.5, 1.0], 60)
+        self.assertEqual(len(paths), 3)
+        self.assertTrue(all(path["l"][0] < 0 < path["l"][-1] for path in paths))
+        self.assertLess(max(path["max_null_residual"] for path in paths), 2e-6)
 
 
 if __name__ == "__main__":
